@@ -60,14 +60,28 @@
 
 ### Create
 
-- **Contact model**: `sender_id`, `name`, `channel`, `avatar`, `tags`, `created_at`, `updated_at`.
-- **Conversation model**: `contact_id`, `last_message_at`, `created_at`, `updated_at`.
-- **Message model**: `conversation_id`, `sender_type` (contact/agent), `text`, `raw_payload`, `created_at`.
+- **Contact model**: `sender_id`, `name`, `channel`, `avatar`, `tags`, `email`, `phone`, `metadata`, `is_active`, `last_seen`, `created_at`, `updated_at`.
+- **Conversation model**: `contact_id`, `title`, `status`, `last_message_at`, `message_count`, `last_message_preview`, `assigned_to`, `metadata`, `is_archived`, `unread_count`, `created_at`, `updated_at`.
+- **Message model**: `conversation_id`, `sender_type` (contact/agent/system), `sender_id`, `text`, `message_type`, `raw_payload`, `attachments`, `is_read`, `platform_message_id`, `metadata`, `is_deleted`, `created_at`, `updated_at`.
 - Create indexes:
-  - `contacts.sender_id`
+  - `contacts.sender_id` (unique)
+  - `contacts.channel`
+  - `contacts.tags` (multikey)
+  - `contacts.is_active, contacts.channel` (compound)
+  - `contacts.last_seen` (descending)
+  - `contacts.name` (text index)
   - `conversations.contact_id`
+  - `conversations.last_message_at` (descending)
+  - `conversations.status, conversations.is_archived, conversations.last_message_at` (compound)
+  - `conversations.assigned_to`
+  - `conversations.unread_count`
   - `messages.conversation_id`
-  - `conversations.last_message_at`
+  - `messages.conversation_id, messages.created_at` (compound)
+  - `messages.sender_type`
+  - `messages.is_read`
+  - `messages.conversation_id, messages.is_read, messages.sender_type` (compound)
+  - `messages.is_deleted`
+  - `messages.text` (text index)
 
 ### Done criteria
 

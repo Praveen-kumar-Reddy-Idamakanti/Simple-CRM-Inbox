@@ -15,6 +15,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Run MongoDB indexes seeder first
+        $this->call(MongoDBIndexSeeder::class);
+
         // User::factory(10)->create();
 
         User::factory()->create([

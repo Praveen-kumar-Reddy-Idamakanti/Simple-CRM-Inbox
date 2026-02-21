@@ -17,6 +17,17 @@
 10. installed MongoDB PHP extension and added to php.ini
 11. configured .env file to use MongoDB
 12. configured database.php file to use MongoDB 
+13. pushed the current code to github
+14. created models for contacts, conversations, messages and MongoDBIndexSeeder
+15. Performed tinker test to verify MongoDB connection
+16. created WebhookService.php to process incoming webhook payload
+17. tested with simulate_webhook.py worked and data is stored in MongoDB, i dont why poller.py is not working showing cannot reach mock server.
+18. In API key i didnt added "" for the token value
+19. now mock poller.py is correctly working and data is stored in MongoDB
+20.
+
+
+
 
 
 
