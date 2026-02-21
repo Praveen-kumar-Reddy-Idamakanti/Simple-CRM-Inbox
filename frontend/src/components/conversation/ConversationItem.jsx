@@ -5,16 +5,18 @@ export default function ConversationItem({ convo, onSelect, selected }) {
   const getChannelIcon = () => {
     switch (convo.channel) {
       case 'instagram': return <Instagram size={10} className="text-white" />;
-      case 'facebook': return <Facebook size={10} className="text-white" />;
-      default: return <Mail size={10} className="text-white" />;
+      case 'facebook':
+      case 'page': return <Facebook size={10} className="text-white" />;
+      default: return <Facebook size={10} className="text-white" />;
     }
   }
 
   const getChannelColor = () => {
     switch (convo.channel) {
       case 'instagram': return 'bg-gradient-to-tr from-purple-500 via-pink-500 to-orange-500';
-      case 'facebook': return 'bg-blue-600';
-      default: return 'bg-slate-500';
+      case 'facebook':
+      case 'page': return 'bg-blue-600';
+      default: return 'bg-blue-600';
     }
   }
 
@@ -22,8 +24,8 @@ export default function ConversationItem({ convo, onSelect, selected }) {
     <div
       onClick={onSelect}
       className={`group flex items-center p-3.5 rounded-2xl transition-all duration-300 cursor-pointer mb-1 ${selected
-          ? 'bg-emerald-500/10 border border-emerald-500/20 shadow-lg shadow-emerald-500/5'
-          : 'bg-transparent border border-transparent hover:bg-white/5 hover:border-white/5'
+        ? 'bg-emerald-500/10 border border-emerald-500/20 shadow-lg shadow-emerald-500/5'
+        : 'bg-transparent border border-transparent hover:bg-white/5 hover:border-white/5'
         }`}
     >
       <div className="relative flex-shrink-0">

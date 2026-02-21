@@ -246,15 +246,13 @@ class WebhookService
             }
             
             if (!$contact) {
-                // Determine a decent initial name with platform symbols
+                // Determine a decent initial name without platform symbols
                 $displayChannel = $channel === 'page' ? 'Facebook' : ucfirst($channel);
-                $symbol = $channel === 'page' ? 'f' : ($channel === 'instagram' ? 'ig' : '');
                 
                 $defaultName = $displayChannel . " User";
                 if ($senderId) {
                     $shortId = substr($senderId, -6);
-                    $prefix = $symbol ? "[{$symbol}] " : "";
-                    $defaultName = "{$prefix}{$displayChannel} ({$shortId})";
+                    $defaultName = "{$displayChannel} ({$shortId})";
                 }
 
                 $contactData = [

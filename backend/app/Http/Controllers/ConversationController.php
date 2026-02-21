@@ -22,19 +22,31 @@ class ConversationController extends Controller
             $query = Conversation::with('contact')
                 ->active()
                 ->whereHas('contact', function($q) {
-                    $q->where('name', 'not like', '[%]')
-                      ->where('name', 'not like', '%User%');
+                    $q->where('name', 'not like', '%[%]%')
+                      ->where('name', 'not like', '%User%')
+                      ->where('name', 'not like', '%(%')
+                      ->where('name', 'not like', 'fb_%')
+                      ->where('name', 'not like', 'ig_%')
+                      ->where('name', 'not like', 'Instagram%')
+                      ->where('name', 'not like', 'Facebook%')
+                      ->where('name', 'not like', 'Page%')
+                      ->whereNotNull('name');
                 })
                 ->orderBy('last_message_at', 'desc');
 
-            // Apply search filter if provided
+            // Apply comprehensive search filter if provided (Name, Channel, Message, Tags)
             if ($request->has('search')) {
                 $searchTerm = $request->get('search');
-                $query->whereHas('contact', function($q) use ($searchTerm) {
-                    $q->where('name', 'like', "%{$searchTerm}%");
+                $query->where(function($q) use ($searchTerm) {
+                    $q->whereHas('contact', function($cq) use ($searchTerm) {
+                        $cq->where('name', 'like', "%{$searchTerm}%")
+                           ->orWhere('channel', 'like', "%{$searchTerm}%")
+                           ->orWhere('tags', 'like', "%{$searchTerm}%"); // Search within the tags array
+                    })
+                    ->orWhere('last_message_preview', 'like', "%{$searchTerm}%");
                 });
             }
-
+            
             // Pagination
             $perPage = $request->get('per_page', 20);
             $page = $request->get('page', 1);

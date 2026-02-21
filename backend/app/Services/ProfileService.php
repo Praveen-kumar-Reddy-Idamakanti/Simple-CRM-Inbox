@@ -141,9 +141,9 @@ class ProfileService
 
         // Fallback to channel-specific naming
         return match ($channel) {
-            'instagram' => "[ig] Instagram User",
-            'page' => "[f] Facebook User",
-            'whatsapp' => "[wa] WhatsApp User",
+            'instagram' => "Instagram User",
+            'page' => "Facebook User",
+            'whatsapp' => "WhatsApp User",
             default => ucfirst($channel) . " User"
         };
     }

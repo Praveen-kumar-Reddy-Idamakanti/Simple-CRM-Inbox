@@ -26,8 +26,8 @@ export default function InsightPanel({ conversationId, metadata, onTagsUpdated }
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">AI Summary</h3>
           </div>
           <p className="text-sm text-slate-300 leading-relaxed italic">
-            "The customer is inquiring about the premium subscription options. They seem particularly interested in the automation features for email sequences."
-          </p>
+            "here Ai summary will be displayed based on the conversation with the user so client does not read the previous chats for context"
+                      </p>
           <div className="mt-4 flex items-center gap-4 border-t border-white/5 pt-4 relative z-10">
             <div className="flex flex-col">
               <span className="text-[10px] text-slate-500 uppercase font-bold">Sentiment</span>
@@ -60,12 +60,6 @@ export default function InsightPanel({ conversationId, metadata, onTagsUpdated }
         </div>
       </div>
 
-      <div className="p-6 border-t border-white/5">
-        <button className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20">
-          <Zap size={16} fill="currentColor" />
-          Take Action
-        </button>
-      </div>
     </aside>
   )
 }

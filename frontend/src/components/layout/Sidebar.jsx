@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { fetchConversations } from '../../services/api'
 import ConversationList from '../conversation/ConversationList'
 import { Search, Sparkles } from 'lucide-react'
+import logo from '../../assets/image.png'
 
 export default function Sidebar({ onSelectConversation, selected }) {
   const [conversations, setConversations] = useState([])
@@ -33,11 +34,8 @@ export default function Sidebar({ onSelectConversation, selected }) {
   return (
     <aside className="w-full bp986:w-[320px] bp986:flex-shrink-0 glass-panel h-full flex flex-col">
       <div className="p-6">
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-cyan-400 flex items-center justify-center">
-            <Sparkles size={18} className="text-white" />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-white">Revio AI</h1>
+        <div className="flex bg-blue-300 items-center justify-center p-3 rounded-xl mb-8 overflow-hidden h-16 shadow-lg shadow-black/20">
+          <img src={logo} alt="Logo" className="h-40 w-auto object-cover " />
         </div>
 
         <div className="relative group">
