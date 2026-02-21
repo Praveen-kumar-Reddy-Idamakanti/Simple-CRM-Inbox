@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\ReplyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,3 +22,6 @@ Route::post('/webhook', [WebhookController::class, 'receive']);
 // Conversation APIs
 Route::get('/conversations', [ConversationController::class, 'index']);
 Route::get('/conversations/{id}/messages', [ConversationController::class, 'messages']);
+
+// Reply API
+Route::post('/reply', [ReplyController::class, 'send']);
