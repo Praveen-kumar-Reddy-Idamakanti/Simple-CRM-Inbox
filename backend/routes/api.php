@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\ConversationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,3 +17,7 @@ use Illuminate\Support\Facades\Route;
 
 // Webhook endpoint for receiving messages from poller
 Route::post('/webhook', [WebhookController::class, 'receive']);
+
+// Conversation APIs
+Route::get('/conversations', [ConversationController::class, 'index']);
+Route::get('/conversations/{id}/messages', [ConversationController::class, 'messages']);

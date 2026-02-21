@@ -27,6 +27,9 @@
 20. created route for profile enrichment check and successfully working
 21. avatar is not being fetched from mock server
 22. i am using the parameter as avatar but real mock server is using profile_pic
+23. created routes for conversation list and conversation messages and connnected with routes controller
+24. successfully fetched conversation list and conversation messages
+
 
 
 
