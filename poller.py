@@ -241,6 +241,8 @@ def poll(token: str, target: str, interval: int) -> None:
                         
                         if status_code == 200:
                             print(f"[✓] [{get_channel_display(channel)}] {sender_id}: \"{text}\"")
+                            # Add a small delay between messages to prevent bursts
+                            time.sleep(5)
                         else:
                             print(f"[✗] [{get_channel_display(channel)}] {sender_id}: webhook returned {status_code}")
                     

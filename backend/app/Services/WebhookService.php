@@ -5,16 +5,25 @@ namespace App\Services;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Services\AiService;
+use App\Services\MockServerService;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
 class WebhookService
 {
     protected $profileService;
+    protected $aiService;
+    protected $mockServer;
 
-    public function __construct(ProfileService $profileService)
-    {
+    public function __construct(
+        ProfileService $profileService, 
+        AiService $aiService,
+        MockServerService $mockServer
+    ) {
         $this->profileService = $profileService;
+        $this->aiService = $aiService;
+        $this->mockServer = $mockServer;
     }
     /**
      * Process incoming webhook payload
@@ -167,11 +176,48 @@ class WebhookService
         // Update contact's last seen
         $contact->updateLastSeen();
 
+        // SIMULATION: Auto-reply from AI
+        if ($messageInfo['text']) {
+            $this->handleAutoReply($conversation, $messageInfo['text']);
+        }
+
         Log::info('Message processed successfully', [
             'contact_id' => $contact->_id,
             'conversation_id' => $conversation->_id,
             'sender_id' => $senderId
         ]);
+    }
+
+    /**
+     * Handle automatic AI reply for incoming messages
+     */
+    private function handleAutoReply(Conversation $conversation, string $text): void
+    {
+        try {
+            $suggestion = $this->aiService->getSuggestion($conversation, $text);
+            
+            if ($suggestion) {
+                // Create the agent message in DB
+                $reply = Message::create([
+                    'conversation_id' => $conversation->_id,
+                    'sender_type' => 'agent',
+                    'sender_id' => 'revio_ai_bot',
+                    'text' => $suggestion,
+                    'message_type' => 'text',
+                    'metadata' => ['is_auto_reply' => true]
+                ]);
+
+                // Update conversation
+                $conversation->updateWithNewMessage($suggestion, 'agent');
+                
+                // SEND back to customer via Mock Server (Integration)
+                $this->mockServer->send($conversation->contact, $suggestion);
+
+                Log::info('AI Auto-reply sent and forwarded to mock server', ['conversation_id' => $conversation->_id]);
+            }
+        } catch (Exception $e) {
+            Log::error('AI Auto-reply failed', ['error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -185,51 +231,52 @@ class WebhookService
     {
         $contact = Contact::where('sender_id', $senderId)->first();
         
-        if (!$contact) {
-            Log::info('Creating new contact', ['sender_id' => $senderId, 'channel' => $channel]);
-            
+        $isFallbackName = false;
+        if ($contact) {
+            // Check if name is missing or a fallback (e.g. "Instagram User")
+            $name = $contact->name ?? '';
+            $isFallbackName = (empty($name) || str_contains($name, 'User') || str_contains($name, 'fb_') || str_contains($name, 'ig_'));
+        }
+
+        if (!$contact || $isFallbackName) {
             // Try to enrich contact with profile data
             $profileData = null;
             if ($this->profileService->isEnabled()) {
                 $profileData = $this->profileService->enrichContact($senderId, $channel);
             }
             
-            // Create contact with enriched or default data
-            $contactData = [
-                'sender_id' => $senderId,
-                'channel' => $channel,
-                'tags' => ['new']
-            ];
-            
-            if ($profileData) {
-                $contactData['name'] = $profileData['name'];
-                $contactData['avatar'] = $profileData['avatar'];
-                $contactData['email'] = $profileData['email'];
-                $contactData['phone'] = $profileData['phone'];
-                $contactData['metadata'] = $profileData['metadata'];
+            if (!$contact) {
+                // Determine a decent initial name with platform symbols
+                $displayChannel = $channel === 'page' ? 'Facebook' : ucfirst($channel);
+                $symbol = $channel === 'page' ? 'f' : ($channel === 'instagram' ? 'ig' : '');
                 
-                Log::info('Contact enriched with profile data', [
-                    'sender_id' => $senderId,
-                    'name' => $profileData['name'],
-                    'has_avatar' => !empty($profileData['avatar'])
-                ]);
-            } else {
-                $contactData['name'] = "User {$senderId}";
-                $contactData['metadata'] = ['profile_source' => 'fallback'];
-                
-                Log::info('Using fallback contact data', ['sender_id' => $senderId]);
-            }
-            
-            $contact = Contact::create($contactData);
-        } else {
-            // For existing contacts, we could potentially refresh their profile data
-            // if it's missing or outdated, but for now we'll keep it simple
-            Log::info('Using existing contact', [
-                'sender_id' => $senderId,
-                'name' => $contact->name
-            ]);
-        }
+                $defaultName = $displayChannel . " User";
+                if ($senderId) {
+                    $shortId = substr($senderId, -6);
+                    $prefix = $symbol ? "[{$symbol}] " : "";
+                    $defaultName = "{$prefix}{$displayChannel} ({$shortId})";
+                }
 
+                $contactData = [
+                    'sender_id' => $senderId,
+                    'name' => $defaultName,
+                    'channel' => $channel,
+                    'tags' => ['new'],
+                    'metadata' => ['profile_source' => 'init_fallback']
+                ];
+                
+                if ($profileData) {
+                    $contactData = array_merge($contactData, $profileData);
+                }
+                
+                $contact = Contact::create($contactData);
+                Log::info('Created contact ' . ($profileData ? 'with' : 'without') . ' profile data', ['name' => $contact->name]);
+            } elseif ($profileData) {
+                // Update existing fallback contact with real data
+                $contact->update($profileData);
+                Log::info('Upgraded fallback contact with real profile', ['name' => $contact->name]);
+            }
+        }
         return $contact;
     }
 

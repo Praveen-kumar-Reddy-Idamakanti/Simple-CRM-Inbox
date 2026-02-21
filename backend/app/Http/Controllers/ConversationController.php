@@ -21,13 +21,18 @@ class ConversationController extends Controller
         try {
             $query = Conversation::with('contact')
                 ->active()
+                ->whereHas('contact', function($q) {
+                    $q->where('name', 'not like', '[%]')
+                      ->where('name', 'not like', '%User%');
+                })
                 ->orderBy('last_message_at', 'desc');
 
             // Apply search filter if provided
             if ($request->has('search')) {
                 $searchTerm = $request->get('search');
-                // For now, just return empty results for search
-                $query->where('_id', 'nonexistent_id');
+                $query->whereHas('contact', function($q) use ($searchTerm) {
+                    $q->where('name', 'like', "%{$searchTerm}%");
+                });
             }
 
             // Pagination
@@ -44,6 +49,9 @@ class ConversationController extends Controller
                     'contact_name' => $conversation->contact->name,
                     'contact_avatar' => $conversation->contact->avatar,
                     'channel' => $conversation->contact->channel,
+                    'contact_email' => $conversation->contact->email,
+                    'contact_phone' => $conversation->contact->phone,
+                    'contact_metadata' => $conversation->contact->metadata,
                     'title' => $conversation->title,
                     'status' => $conversation->status,
                     'last_message_preview' => $conversation->last_message_preview,
@@ -104,7 +112,7 @@ class ConversationController extends Controller
             // Build messages query
             $query = Message::where('conversation_id', $id)
                 ->with('conversation.contact')
-                ->orderBy('created_at', 'asc')
+                ->orderBy('created_at', 'desc')
                 ->notDeleted();
 
             // Pagination
@@ -138,9 +146,15 @@ class ConversationController extends Controller
             return response()->json([
                 'conversation' => [
                     'id' => $conversation->_id,
+                    'contact_id' => $conversation->contact_id,
+                    'contact_sender_id' => $conversation->contact->sender_id,
                     'contact_name' => $conversation->contact->name,
                     'contact_avatar' => $conversation->contact->avatar,
+                    'contact_email' => $conversation->contact->email,
+                    'contact_phone' => $conversation->contact->phone,
+                    'contact_metadata' => $conversation->contact->metadata,
                     'channel' => $conversation->contact->channel,
+                    'tags' => $conversation->contact->tags ?? [],
                     'title' => $conversation->title,
                     'status' => $conversation->status,
                 ],

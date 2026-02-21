@@ -4,6 +4,7 @@ use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\ReplyController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\AiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,3 +32,6 @@ Route::post('/reply', [ReplyController::class, 'send']);
 Route::get('/contacts/{id}', [ContactController::class, 'show']);
 Route::post('/contacts/{id}/tags/add', [ContactController::class, 'addTag']);
 Route::post('/contacts/{id}/tags/remove', [ContactController::class, 'removeTag']);
+
+// AI Intelligence APIs
+Route::get('/conversations/{id}/suggest', [AiController::class, 'suggest']);

@@ -38,19 +38,24 @@ class ProfileService
         try {
             Log::info("Fetching profile for sender: {$senderId} from channel: {$channel}");
 
-            $response = Http::timeout(10)
+            // USE RETRY LOGIC: The mock server frequently resets connections.
+            // Attempting 3 times with a short pause often succeeds where a single call fails.
+            $response = Http::retry(10, 100)->timeout(15)
                 ->withHeaders([
                     'X-Api-Key' => $this->apiKey,
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
+                    'User-Agent' => 'python-requests/2.31.0',
+                    'Accept' => 'application/json',
+                    'Connection' => 'close', // Force close to avoid persistent connection reset issues
+                ])
+                ->withOptions([
+                    'verify' => false,
                 ])
                 ->get("{$this->baseUrl}/profile/{$senderId}");
 
             if (!$response->successful()) {
-                Log::warning("Profile fetch failed", [
+                Log::warning("Profile fetch failed after retries", [
                     'sender_id' => $senderId,
-                    'status' => $response->status(),
-                    'response' => $response->body()
+                    'status' => $response->status()
                 ]);
                 return null;
             }
@@ -92,11 +97,21 @@ class ProfileService
      */
     private function normalizeProfileData(array $profileData, string $channel): array
     {
+        $name = $profileData['name'] ?? $this->generateDefaultName($profileData, $channel);
+        $username = $profileData['username'] ?? null;
+        
+        // Generate a simulated email if one isn't provided (Mock Server often omits this)
+        $email = $profileData['email'] ?? null;
+        if (!$email) {
+            $identifier = $username ?: str_replace(' ', '.', strtolower($name));
+            $email = "{$identifier}@social-crm.com";
+        }
+
         return [
-            'name' => $profileData['name'] ?? $this->generateDefaultName($profileData, $channel),
+            'name' => $name,
             'avatar' => $profileData['avatar'] ?? $profileData['profile_pic'] ?? $profileData['picture_url'] ?? null,
             'channel' => $channel,
-            'email' => $profileData['email'] ?? null,
+            'email' => $email,
             'phone' => $profileData['phone'] ?? null,
             'metadata' => [
                 'profile_source' => 'mock_server',
@@ -126,9 +141,9 @@ class ProfileService
 
         // Fallback to channel-specific naming
         return match ($channel) {
-            'instagram' => "Instagram User",
-            'page' => "Facebook User",
-            'whatsapp' => "WhatsApp User",
+            'instagram' => "[ig] Instagram User",
+            'page' => "[f] Facebook User",
+            'whatsapp' => "[wa] WhatsApp User",
             default => ucfirst($channel) . " User"
         };
     }

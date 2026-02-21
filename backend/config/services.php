@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'mock' => [
+        'api_key' => env('API_KEY'),
+        'base_url' => 'https://mock-simulation.omts.in',
+    ],
+
 ];
