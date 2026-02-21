@@ -10,6 +10,12 @@ use Exception;
 
 class WebhookService
 {
+    protected $profileService;
+
+    public function __construct(ProfileService $profileService)
+    {
+        $this->profileService = $profileService;
+    }
     /**
      * Process incoming webhook payload
      * 
@@ -145,7 +151,7 @@ class WebhookService
     }
 
     /**
-     * Find or create contact
+     * Find or create contact with profile enrichment
      * 
      * @param string $senderId
      * @param string $channel
@@ -158,11 +164,45 @@ class WebhookService
         if (!$contact) {
             Log::info('Creating new contact', ['sender_id' => $senderId, 'channel' => $channel]);
             
-            $contact = Contact::create([
+            // Try to enrich contact with profile data
+            $profileData = null;
+            if ($this->profileService->isEnabled()) {
+                $profileData = $this->profileService->enrichContact($senderId, $channel);
+            }
+            
+            // Create contact with enriched or default data
+            $contactData = [
                 'sender_id' => $senderId,
-                'name' => "User {$senderId}", // Will be updated in Phase 5
                 'channel' => $channel,
                 'tags' => ['new']
+            ];
+            
+            if ($profileData) {
+                $contactData['name'] = $profileData['name'];
+                $contactData['avatar'] = $profileData['avatar'];
+                $contactData['email'] = $profileData['email'];
+                $contactData['phone'] = $profileData['phone'];
+                $contactData['metadata'] = $profileData['metadata'];
+                
+                Log::info('Contact enriched with profile data', [
+                    'sender_id' => $senderId,
+                    'name' => $profileData['name'],
+                    'has_avatar' => !empty($profileData['avatar'])
+                ]);
+            } else {
+                $contactData['name'] = "User {$senderId}";
+                $contactData['metadata'] = ['profile_source' => 'fallback'];
+                
+                Log::info('Using fallback contact data', ['sender_id' => $senderId]);
+            }
+            
+            $contact = Contact::create($contactData);
+        } else {
+            // For existing contacts, we could potentially refresh their profile data
+            // if it's missing or outdated, but for now we'll keep it simple
+            Log::info('Using existing contact', [
+                'sender_id' => $senderId,
+                'name' => $contact->name
             ]);
         }
 

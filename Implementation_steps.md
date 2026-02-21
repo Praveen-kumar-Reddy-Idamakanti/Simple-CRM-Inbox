@@ -24,7 +24,9 @@
 17. tested with simulate_webhook.py worked and data is stored in MongoDB, i dont why poller.py is not working showing cannot reach mock server.
 18. In API key i didnt added "" for the token value
 19. now mock poller.py is correctly working and data is stored in MongoDB
-20.
+20. created route for profile enrichment check and successfully working
+21. avatar is not being fetched from mock server
+22. i am using the parameter as avatar but real mock server is using profile_pic
 
 
 
