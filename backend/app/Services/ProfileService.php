@@ -14,7 +14,7 @@ class ProfileService
 
     public function __construct()
     {
-        $this->apiKey = env('API_KEY'); // Using the API_KEY from .env
+        $this->apiKey = config('services.mock.api_key', env('API_KEY')); // Use config first, fallback to env
         $this->baseUrl = 'https://mock-simulation.omts.in';
         $this->cacheTtl = 3600; // Cache for 1 hour
     }
@@ -58,6 +58,9 @@ class ProfileService
             $profileData = $response->json();
             
             // Validate and normalize profile data
+            if ($profileData === null) {
+                $profileData = [];
+            }
             $normalizedProfile = $this->normalizeProfileData($profileData, $channel);
             
             // Cache the result
@@ -175,5 +178,16 @@ class ProfileService
             'api_key_set' => !empty($this->apiKey),
             'base_url' => $this->baseUrl
         ];
+    }
+
+    /**
+     * Normalize tag string
+     * 
+     * @param string $tag
+     * @return string
+     */
+    private function normalizeTag(string $tag): string
+    {
+        return strtolower(trim($tag));
     }
 }

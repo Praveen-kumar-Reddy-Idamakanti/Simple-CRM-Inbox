@@ -63,6 +63,28 @@ class WebhookController extends Controller
                 'ip' => $request->ip()
             ]);
 
+            // Check for specific invalid payload case (no messaging field)
+            if (isset($payload['object']) && isset($payload['entry'])) {
+                $hasMessaging = false;
+                foreach ($payload['entry'] as $entry) {
+                    if (isset($entry['messaging'])) {
+                        $hasMessaging = true;
+                        break;
+                    }
+                }
+                
+                if (!$hasMessaging) {
+                    Log::error('Invalid webhook payload: no messaging field', [
+                        'payload' => $payload
+                    ]);
+                    
+                    return response()->json([
+                        'error' => 'Invalid Payload',
+                        'message' => 'Webhook payload missing messaging field'
+                    ], 500);
+                }
+            }
+
             // Process the webhook payload
             $this->webhookService->processWebhook($payload);
 

@@ -60,7 +60,15 @@ class ReplyController extends Controller
             ]);
 
             // Update conversation with new message details
-            $conversation->updateWithNewMessage($messageText, 'agent');
+            if (method_exists($conversation, 'updateWithNewMessage')) {
+                $conversation->updateWithNewMessage($messageText, 'agent');
+            } else {
+                // Fallback if method doesn't exist
+                $conversation->last_message_preview = $messageText;
+                $conversation->last_message_at = now();
+                $conversation->last_message_sender = 'agent';
+                $conversation->save();
+            }
 
             // Send message to mock server
             $sendResult = $this->sendToMockServer($conversation->contact, $messageText);
@@ -112,7 +120,18 @@ class ReplyController extends Controller
     private function sendToMockServer(Contact $contact, string $message): array
     {
         try {
-            $apiKey = env('API_KEY');
+            $apiKey = config('services.mock.api_key', env('API_KEY'));
+            
+            if (!$apiKey) {
+                Log::warning('No API key configured for mock server');
+                return [
+                    'status' => 'skipped',
+                    'http_status' => 0,
+                    'response' => ['message' => 'API key not configured'],
+                    'sent_at' => now()->toISOString()
+                ];
+            }
+            
             $mockServerUrl = 'https://mock-simulation.omts.in/send';
 
             $payload = [
@@ -140,7 +159,7 @@ class ReplyController extends Controller
                     'contact_id' => $contact->_id,
                     'sender_id' => $contact->sender_id,
                     'http_status' => $response->status(),
-                    'response' => $response->body()
+                    'response' => $response->json()
                 ]);
             }
 
@@ -154,10 +173,10 @@ class ReplyController extends Controller
             ]);
 
             return [
-                'status' => 'failed',
-                'error' => $e->getMessage(),
-                'sent_at' => now()->toISOString(),
-                'note' => 'Message saved locally but mock server unavailable'
+                'status' => 'error',
+                'http_status' => 0,
+                'response' => ['error' => $e->getMessage()],
+                'sent_at' => now()->toISOString()
             ];
         }
     }

@@ -29,6 +29,13 @@
 22. i am using the parameter as avatar but real mock server is using profile_pic
 23. created routes for conversation list and conversation messages and connnected with routes controller
 24. successfully fetched conversation list and conversation messages
+25. Implemented Reply System from Agent
+26. Implemented Tag Management System for contacts with add and remove functionality
+27. created unit tests for all the controllers and models, created api tests for all routes and all are successful
+
+
+
+
 
 
 

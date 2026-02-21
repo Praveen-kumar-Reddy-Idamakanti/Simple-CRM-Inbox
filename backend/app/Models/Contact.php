@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use MongoDB\Laravel\Eloquent\Model;
+use MongoDB\Laravel\Eloquent\SoftDeletes;
 
 /**
  * Contact Model - Represents a contact person in the CRM system
@@ -23,6 +24,8 @@ use MongoDB\Laravel\Eloquent\Model;
  */
 class Contact extends Model
 {
+    use SoftDeletes;
+    
     protected $connection = 'mongodb';
     
     protected $fillable = [
@@ -54,7 +57,7 @@ class Contact extends Model
     // Default values
     protected $attributes = [
         'tags' => [],
-        'metadata' => [],
+        'metadata' => null,
         'is_active' => true
     ];
 
@@ -77,7 +80,7 @@ class Contact extends Model
     /**
      * Scope: Get contacts by channel
      */
-    public function scopeByChannel($query, $channel)
+    public function scopeChannel($query, $channel)
     {
         return $query->where('channel', $channel);
     }
@@ -85,7 +88,7 @@ class Contact extends Model
     /**
      * Scope: Get contacts with specific tag
      */
-    public function scopeWithTag($query, $tag)
+    public function scopeTag($query, $tag)
     {
         return $query->where('tags', $tag);
     }

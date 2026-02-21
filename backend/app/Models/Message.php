@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use MongoDB\Laravel\Eloquent\Model;
+use MongoDB\Laravel\Eloquent\SoftDeletes;
 
 /**
  * Message Model - Represents individual messages in conversations
@@ -24,6 +25,8 @@ use MongoDB\Laravel\Eloquent\Model;
  */
 class Message extends Model
 {
+    use SoftDeletes;
+    
     protected $connection = 'mongodb';
     
     protected $fillable = [
@@ -54,12 +57,9 @@ class Message extends Model
 
     // Default values
     protected $attributes = [
-        'sender_type' => 'contact',
-        'message_type' => 'text',
-        'attachments' => [],
-        'metadata' => [],
         'is_read' => false,
-        'is_deleted' => false
+        'is_deleted' => false,
+        'metadata' => null
     ];
 
     /**
@@ -100,6 +100,22 @@ class Message extends Model
     public function scopeUnread($query)
     {
         return $query->where('is_read', false);
+    }
+
+    /**
+     * Scope: Get read messages
+     */
+    public function scopeRead($query)
+    {
+        return $query->where('is_read', true);
+    }
+
+    /**
+     * Scope: Get messages by message type
+     */
+    public function scopeMessageType($query, $messageType)
+    {
+        return $query->where('message_type', $messageType);
     }
 
     /**

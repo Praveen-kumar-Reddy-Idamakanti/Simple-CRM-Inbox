@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use MongoDB\Laravel\Eloquent\Model;
+use MongoDB\Laravel\Eloquent\SoftDeletes;
 
 /**
  * Conversation Model - Represents a conversation thread with a contact
@@ -23,6 +24,8 @@ use MongoDB\Laravel\Eloquent\Model;
  */
 class Conversation extends Model
 {
+    use SoftDeletes;
+    
     protected $connection = 'mongodb';
     
     protected $fillable = [
@@ -53,11 +56,11 @@ class Conversation extends Model
 
     // Default values
     protected $attributes = [
-        'status' => 'active',
         'message_count' => 0,
-        'metadata' => [],
+        'unread_count' => 0,
         'is_archived' => false,
-        'unread_count' => 0
+        'status' => 'active',
+        'metadata' => null
     ];
 
     /**
@@ -69,7 +72,7 @@ class Conversation extends Model
     }
 
     /**
-     * Relationship: Get all messages in this conversation
+     * Relationship: Get all messages for this conversation
      */
     public function messages()
     {
@@ -85,19 +88,11 @@ class Conversation extends Model
     }
 
     /**
-     * Scope: Get archived conversations
+     * Scope: Get archived conversations only
      */
     public function scopeArchived($query)
     {
         return $query->where('is_archived', true);
-    }
-
-    /**
-     * Scope: Get conversations for a specific agent
-     */
-    public function scopeAssignedTo($query, $agentId)
-    {
-        return $query->where('assigned_to', $agentId);
     }
 
     /**
@@ -109,19 +104,26 @@ class Conversation extends Model
     }
 
     /**
-     * Update conversation with new message details
+     * Scope: Get conversations by status
+     */
+    public function scopeStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Update conversation with new message
      */
     public function updateWithNewMessage($messageText, $senderType = 'contact')
     {
-        $this->last_message_at = now();
         $this->message_count = ($this->message_count ?? 0) + 1;
-        $this->last_message_preview = substr($messageText, 0, 100);
         
-        // Increment unread count for contact messages
         if ($senderType === 'contact') {
             $this->unread_count = ($this->unread_count ?? 0) + 1;
         }
         
+        $this->last_message_preview = $messageText;
+        $this->last_message_at = now();
         $this->save();
     }
 
@@ -135,7 +137,7 @@ class Conversation extends Model
     }
 
     /**
-     * Archive conversation
+     * Archive the conversation
      */
     public function archive()
     {
@@ -145,7 +147,7 @@ class Conversation extends Model
     }
 
     /**
-     * Unarchive conversation
+     * Unarchive the conversation
      */
     public function unarchive()
     {

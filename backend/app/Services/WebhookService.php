@@ -26,65 +26,89 @@ class WebhookService
     public function processWebhook(array $payload): void
     {
         // Extract message information from payload
-        $messageInfo = $this->extractMessageInfo($payload);
+        $messageInfos = $this->extractMessageInfos($payload);
         
-        if (!$messageInfo) {
-            Log::warning('No message found in webhook payload', ['payload' => $payload]);
+        if (empty($messageInfos)) {
+            Log::warning('No messages found in webhook payload', ['payload' => $payload]);
             return;
         }
 
-        Log::info('Processing message', [
-            'sender_id' => $messageInfo['sender_id'],
-            'channel' => $messageInfo['channel'],
-            'text' => substr($messageInfo['text'], 0, 100)
-        ]);
+        foreach ($messageInfos as $messageInfo) {
+            Log::info('Processing message', [
+                'sender_id' => $messageInfo['sender_id'],
+                'channel' => $messageInfo['channel'],
+                'text' => substr($messageInfo['text'], 0, 100)
+            ]);
 
-        // Ensure contact and conversation exist
-        $this->ensureContactAndConversation($payload, $messageInfo);
+            // Ensure contact and conversation exist
+            $this->ensureContactAndConversation($payload, $messageInfo);
+        }
     }
 
     /**
-     * Extract message information from webhook payload
+     * Extract multiple message information from webhook payload
      * 
      * @param array $payload
-     * @return array|null
+     * @return array
      */
-    private function extractMessageInfo(array $payload): ?array
+    private function extractMessageInfos(array $payload): array
     {
         try {
             $channel = $payload['object'] ?? 'unknown';
             
             $entries = $payload['entry'] ?? [];
             if (empty($entries) || !is_array($entries)) {
-                return null;
+                return [];
             }
 
-            $firstEntry = $entries[0];
-            $messagingList = $firstEntry['messaging'] ?? [];
+            $messageInfos = [];
             
-            if (empty($messagingList) || !is_array($messagingList)) {
-                return null;
+            foreach ($entries as $entry) {
+                $messagingList = $entry['messaging'] ?? [];
+                
+                if (empty($messagingList) || !is_array($messagingList)) {
+                    continue;
+                }
+
+                foreach ($messagingList as $messaging) {
+                    $sender = $messaging['sender'] ?? [];
+                    $message = $messaging['message'] ?? [];
+
+                    $messageInfo = [
+                        'channel' => $channel,
+                        'sender_id' => $sender['id'] ?? null,
+                        'text' => $message['text'] ?? '',
+                        'message_type' => $this->detectMessageType($message),
+                        'raw_payload' => $payload
+                    ];
+
+                    if ($messageInfo['sender_id'] && !empty($messageInfo['text'])) {
+                        $messageInfos[] = $messageInfo;
+                    }
+                }
             }
 
-            $messaging = $messagingList[0];
-            $sender = $messaging['sender'] ?? [];
-            $message = $messaging['message'] ?? [];
-
-            return [
-                'channel' => $channel,
-                'sender_id' => $sender['id'] ?? null,
-                'text' => $message['text'] ?? '',
-                'message_type' => $this->detectMessageType($message),
-                'raw_payload' => $payload
-            ];
+            return $messageInfos;
 
         } catch (Exception $e) {
-            Log::error('Failed to extract message info', [
+            Log::error('Failed to extract message infos', [
                 'error' => $e->getMessage(),
                 'payload' => $payload
             ]);
-            return null;
+            return [];
         }
+    }
+
+    /**
+     * Extract message information from webhook payload (legacy single message)
+     * 
+     * @param array $payload
+     * @return array|null
+     */
+    private function extractMessageInfo(array $payload): ?array
+    {
+        $messageInfos = $this->extractMessageInfos($payload);
+        return $messageInfos[0] ?? null;
     }
 
     /**
@@ -244,13 +268,21 @@ class WebhookService
      */
     private function createMessage(Conversation $conversation, array $messageInfo): Message
     {
-        return Message::create([
+        $messageData = [
             'conversation_id' => $conversation->_id,
             'sender_type' => 'contact',
             'sender_id' => $messageInfo['sender_id'],
             'text' => $messageInfo['text'],
             'message_type' => $messageInfo['message_type'],
             'raw_payload' => $messageInfo['raw_payload']
-        ]);
+        ];
+
+        // Add attachments if present in the original message
+        if (isset($messageInfo['raw_payload']['entry'][0]['messaging'][0]['message']['attachments'])) {
+            $attachments = $messageInfo['raw_payload']['entry'][0]['messaging'][0]['message']['attachments'];
+            $messageData['attachments'] = $attachments;
+        }
+
+        return Message::create($messageData);
     }
 }
