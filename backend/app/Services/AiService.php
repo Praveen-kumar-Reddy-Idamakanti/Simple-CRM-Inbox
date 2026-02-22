@@ -58,12 +58,22 @@ class AiService
             return "We have many happy customers! You can check out our testimonials here: revio.com/reviews or I can tell you about a similar business using us.";
         }
 
-        // 5. Free / Trial
+        // 5. Refunds & Guarantees
+        if (preg_match('/refund|money back|cancel|guarantee/', $text)) {
+            return "We offer a 30-day money-back guarantee. If you're not 100% satisfied, just let us know and we'll process your refund immediately, no questions asked!";
+        }
+
+        // 6. Shipping & Logistics
+        if (preg_match('/ship|deliver|international|how long/', $text)) {
+            return "We ship worldwide! International delivery typically takes 2-5 business days depending on your location. Standard shipping is free on all annual plans!";
+        }
+
+        // 7. Free / Trial
         if (preg_match('/free|trial|demo/', $text)) {
             return "We offer a 14-day full-access trial. No credit card is required to start. Would you like the sign-up link?";
         }
 
-        // 6. Greetings
+        // 8. Greetings
         if (preg_match('/hi|hello|hey|greetings/', $text)) {
             $greetings = [
                 "Hello! I'm your AI assistant. How's your day going?",
@@ -73,12 +83,12 @@ class AiService
             return $greetings[array_rand($greetings)];
         }
 
-        // 7. Gratitude
+        // 9. Gratitude
         if (preg_match('/thank|thanks|great|cool/', $text)) {
             return "You're very welcome! I'm here if you need anything else.";
         }
 
-        // 8. General Fallback with Context Aware phrases
+        // 10. General Fallback with Context Aware phrases
         $fallbacks = [
             "That's a great question. I've notified our team to give you a detailed answer. Is there anything else I can help with in the meantime?",
             "I'm still learning, but I've passed this to a human specialist. They usually respond within 30 minutes!",

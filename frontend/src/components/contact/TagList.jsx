@@ -53,14 +53,14 @@ export default function TagList({ conversationId, contactSenderId, tags = [], on
     <div>
       <div className="flex items-center gap-2 mb-3">
         <TagIcon className="text-slate-500" size={14} />
-        <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Target Segments</h3>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Segments</h3>
       </div>
 
       <div className="flex flex-wrap gap-2">
         {tags.map((tag) => (
           <span
             key={tag}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${getTagStyle(tag)} text-[10px] font-bold uppercase tracking-tight group transition-all`}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${getTagStyle(tag)} text-[11px] font-bold uppercase tracking-tight group transition-all`}
           >
             {tag}
             <button
@@ -79,7 +79,7 @@ export default function TagList({ conversationId, contactSenderId, tags = [], on
               autoFocus
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
-              className="bg-slate-900 border border-emerald-500/30 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none w-20"
+              className="bg-slate-900 border border-emerald-500/30 rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none w-20"
               placeholder="Tag name..."
               onBlur={() => !newTag && setIsAdding(false)}
             />
@@ -88,7 +88,7 @@ export default function TagList({ conversationId, contactSenderId, tags = [], on
           <button
             onClick={() => setIsAdding(true)}
             disabled={!contactSenderId}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-white/5 bg-white/5 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-white/5 bg-white/5 text-[11px] font-bold text-slate-400 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30"
           >
             <Plus size={10} />
             Add
