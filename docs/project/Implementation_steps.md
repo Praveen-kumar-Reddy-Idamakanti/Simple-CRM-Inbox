@@ -31,8 +31,8 @@
 24. Implemented Reply System from Agent
 25. Implemented Tag Management System for contacts with add and remove functionality
 26. created unit tests for all the controllers and models, created api tests for all routes and all are successful
-27. Implemented Frontend using React
-28. 
+27. Implemented Frontend using React and added tagging system in frontend
+28. Imnpleted dynamic search functionality in frontend
 
 
 

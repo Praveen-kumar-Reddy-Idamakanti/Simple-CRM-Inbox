@@ -53,7 +53,6 @@ python scripts/poller.py --token abc123 --target http://localhost:8000 --interva
 ## 🧪 Testing
 The project maintains high code quality through rigorous testing:
 - **Unit Tests**: `php artisan test --testsuite=Unit`
-- **Feature/API Tests**: `php artisan test --testsuite=Feature`
 - View the latest [Unit Test Report](./backend/UNIT_TESTING_REPORT.md) and [API Test Report](./backend/api_test_report.md).
 
 ---

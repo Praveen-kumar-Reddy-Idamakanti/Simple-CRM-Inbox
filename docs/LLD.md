@@ -1,0 +1,118 @@
+# Low-Level Design (LLD) - CRM Inbox
+
+This document outlines the Low-Level Design (LLD) for the CRM Inbox project, detailing the internal structures, class responsibilities, and data models of both the backend and frontend systems.
+
+---
+
+## 1. Backend Architecture (Laravel)
+
+The backend follows a service-oriented MVC architecture. 
+
+### 1.1 Models (MongoDB Documents)
+
+The system relies on three core Eloquent models configured for MongoDB using the `mongodb/laravel-mongodb` package.
+
+#### `Contact`
+Represents an external customer parsed from social media channels.
+- **`_id`**: MongoDB ObjectId.
+- **`sender_id`**: Unique identifier from the mock simulation (e.g., FB/IG user ID).
+- **`name`**: Display name of the customer. Defaults to a fallback until enriched.
+- **`channel`**: Originating channel (`instagram`, `facebook`, `page`).
+- **`avatar`**: URL to the user's profile image (fetched from `ProfileService`).
+- **`tags`**: Array of strings used for segmenting users (e.g., `["VIP", "New"]`).
+- **`last_seen`**: Timestamp of the latest interaction.
+
+#### `Conversation`
+Represents an ongoing thread between a `Contact` and an agent/bot.
+- **`contact_id`**: Foreign key to the `Contact` model.
+- **`title`**: Auto-generated title (e.g., "Conversation with John Doe").
+- **`status`**: Current state (`active`, `archived`).
+- **`last_message_preview`**: Snippet of the latest message for UI list rendering.
+- **`last_message_at`**: Timestamp of the last interaction, used for sorting the inbox.
+- **`message_count`**: Total number of messages in the thread.
+- **`unread_count`**: Number of messages the agent has not yet seen.
+
+#### `Message`
+Represents an individual chat message within a Conversation.
+- **`conversation_id`**: Foreign key to the `Conversation` collection.
+- **`sender_type`**: Enum-like string (`contact`, `agent`, `system`).
+- **`sender_id`**: ID of the specific agent or the external contact's `sender_id`.
+- **`text`**: The body of the message.
+- **`message_type`**: Type of payload (`text`, `image`, `video`).
+- **`raw_payload`**: Complete original JSON payload from the webhook for debugging.
+
+---
+
+### 1.2 Controllers
+
+Controllers handle HTTP request validation and delegate complex logic to Services.
+
+- **`WebhookController`**: Validates the incoming webhook request from the Poller (checking `X-Webhook-Token`). Decodes JSON and passes it to `WebhookService`.
+- **`ConversationController`**: Handles `$request->search` filters, paginates `Conversation` lists, and fetches paginated `Message` histories for a specific conversation ID.
+- **`ReplyController`**: Validates agent reply inputs block, creates an `agent` message record, and defers outbound delivery to `MockServerService`.
+- **`ContactController`**: Manages the addition and removal of tags within the `Contact->tags` array natively in MongoDB.
+
+---
+
+### 1.3 Service Layer
+
+Services house the core business logic, adhering to the Single Responsibility Principle.
+
+- **`WebhookService`**: 
+  - Iterates over webhook entries and extracts structured message parameters.
+  - Ensures a `Contact` exists (delegating to `ProfileService` if new).
+  - Ensures an open `Conversation` exists.
+  - Generates the incoming `Message`.
+  - Coordinates with `AiService` to trigger immediate auto-replies.
+- **`ProfileService`**: 
+  - Makes concurrent/synchronous outbound calls to `https://mock-simulation.omts.in/profile/{id}` to scrape initial contact data.
+- **`MockServerService`**: 
+  - Adapter for the simulated outbound channels. It `Http::post`s text to `https://mock-simulation.omts.in/send` utilizing the `X-Api-Key` authorization barrier, equipped with a 5-iteration retry mechanism for external stability.
+- **`AiService`**: 
+  - Evaluates message inputs using RegEx to discern user intent (e.g., detecting keywords like "price" or "shipping").
+  - Returns hardcoded but dynamic localized intelligence responses back to the WebhookService.
+
+---
+
+## 2. Frontend Architecture (React)
+
+The frontend is a classic Single Page Application (SPA), utilizing structural components, scoped state loops, and external API services.
+
+### 2.1 API Integration (`src/services/api.js`)
+All HTTP Fetch requests route through a single service object wrapper ensuring default headers and identical base URL handling.
+- `fetchConversations(params)` -> GET `/conversations`
+- `fetchMessages(id)` -> GET `/conversations/{id}/messages`
+- `sendReply(id, text)` -> POST `/reply`
+- `addTag(id, tag)` / `removeTag(id, tag)` -> POST hooks for tags.
+
+### 2.2 Component Hierarchy
+
+- **`App` / `MainLayout`**: Shell wrappers coordinating the master 3-column UI state (Left Sidebar, Middle Chat, Right Insight Panel).
+- **`ConversationList`**: Renders `<ConversationItem />`. Maintains local state for the `search` primitive input, utilizing throttling/debouncing before pushing to `api.js`.
+- **`ChatWindow`**: The central interactive view.
+  - Maps an array of messages generated by `fetchMessages` into `<MessageBubble />` items.
+  - Identifies message alignment via `message.sender_type === 'contact' ? 'left' : 'right'`.
+  - Contains `<MessageInput />` which captures user keystrokes for `sendReply`.
+- **`InsightPanel` / `ContactProfile`**:
+  - Bound to the currently active conversation context. Reads the `conversation.contact` bundle injected into the messages endpoint payload.
+  - Contains `<TagList />`, which houses the logic to dynamically map current tags, render "X" buttons for tag removal, and form logic for `addTag`.
+
+### 2.3 State Management
+React Component State (`useState`, `useEffect`) handles data lifecycles. 
+- *Polling Strategy*: To simulate real-time socket connections, `ChatWindow` implements a robust `setInterval` hook that refetches the active conversation array seamlessly to hydrate the UI with incoming Poller messages.
+
+---
+
+## 3. Communication Pipelines
+
+### Inbound Flow (External -> CRM)
+1. Custom Python `poller.py` scrapes external Mock UI.
+2. Performs `POST http://localhost:8000/api/webhook` injecting custom Header auth.
+3. MVC pipeline executes, converting raw payload into NoSQL schemas.
+4. React interval polling hydrates updated MongoDB records into the user's DOM.
+
+### Outbound Flow (CRM -> External)
+1. Agent hits "Send" via React `<MessageInput />`.
+2. React fires `POST /api/reply`.
+3. Laravel stores record & commands `MockServerService` to push outward.
+4. `MockServerService` executes authenticated POST bound to `https://mock-simulation.omts.in/send`. Real-world loop is closed.
